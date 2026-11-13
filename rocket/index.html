@@ -38,7 +38,7 @@
         height: 100%;
     }
 
-    #player{
+    .player{
         text-align: center;
         width: 60px;
         height: 100px;
@@ -61,14 +61,32 @@
           -webkit-text-stroke-color: lightgrey;
     }
 
-    #player:hover{
+    .player-name {
+        display: block;
+        max-width: 125px;
+        overflow-wrap: normal;
+        word-break: normal;
+        margin: 0 auto 4px;
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.72);
+        color: white;
+        -webkit-text-fill-color: white;
+        -webkit-text-stroke: 0;
+        font-size: 13px;
+        line-height: 1.2;
+        position: relative;
+        z-index: 21;
+    }
+
+    .player:hover{
         color: black;
           -webkit-text-fill-color: black; /* Will override color (regardless of order) */
           -webkit-text-stroke-width: 1px;
           -webkit-text-stroke-color: black;
     }
 
-    #plustwo{
+    .vote-button{
         margin-top: 5px;
         margin-left: 10px;
         width: 30px;
@@ -76,22 +94,8 @@
         padding: 0px;
         border: 1px solid black;
     }
-    #plustwo:hover{
+    .vote-button:first-of-type:hover{
         background-color: red;
-    }
-    
-    #plusone{
-        display: none;
-        margin-top: 5px;
-        margin-left: 6px;
-        width: 30px;
-        background-color: grey;
-        padding: 0px;
-        border: 1px solid black;
-    }
-    
-    #plusone:hover{
-        background-color: yellow;
     }
     
     #rocketlaunch{
@@ -125,6 +129,26 @@
           -webkit-text-fill-color: white; /* Will override color (regardless of order) */
           -webkit-text-stroke-width: 1px;
           -webkit-text-stroke-color: white;
+    }
+
+    body.race-started #votes {
+        left: auto;
+        right: 20px;
+        top: 20px;
+        width: min(32vw, 360px);
+        max-width: calc(100vw - 40px);
+        max-height: 32vh;
+        overflow: auto;
+        padding: 10px;
+        box-sizing: border-box;
+        background: transparent;
+        text-align: right;
+        font-size: clamp(16px, 2vw, 30px);
+        -webkit-text-stroke-width: 0;
+    }
+
+    body.race-started #scores {
+        font-size: clamp(13px, 1.5vw, 22px);
     }
     
     #backgroundimage{
@@ -177,6 +201,11 @@
         left: 76px;
     }
 
+    .player.winner .rocketimg {
+        width: 36px;
+        height: auto;
+    }
+
 
 </style>
 
@@ -193,10 +222,9 @@
 
     score = []
     totalVotes = 0
+    var nextVotePoints = 2;
     
-    first = "";
-    second = "";
-    third = "";
+    var raceResults = [];
     
     var audioLaunch = new Audio('sounds/launch.mp3');
     var audioClaps = new Audio('sounds/moo.mp3');
@@ -208,12 +236,11 @@
         for(i=0; i<players.length; i++){
             score[i] = 0
             offset = (i%2)*30+80
-            newplayer = "<div style=\"left: "+(distance)*(i+1)+"%; bottom: "+offset+"px;\" class=\"p"+players[i]+"\" id=\"player\">"+players[i]+
-            "<img class=\"rocketimg\" id=\"rocket"+i+"\" src=\"images/rocket_out.png\" width=\"55\">"+
-            "<button type=\"button\" id=\"plustwo\" class=\"btn btn-lg btn-block btn-outline-primary\" onclick=\"addPoints(2, "+i+");\">+2</button>"+
-            "<button type=\"button\" id=\"plusone\" class=\"btn btn-lg btn-block btn-outline-primary\" onclick=\"addPoints(1, "+i+");\">+1</button>"+
-            "</div>"
-            $("#content").append(newplayer);
+            var $newplayer = $("<div>", {id: "player-" + i, "class": "player", css: {left: (distance * (i + 1)) + "%", bottom: offset + "px"}});
+            $newplayer.append($("<span>", {"class": "player-name", text: players[i]}));
+            $newplayer.append($("<img>", {"class": "rocketimg", id: "rocket" + i, src: "images/rocket_out.png", width: 55}));
+            $newplayer.append($("<button>", {type: "button", "class": "vote-button btn btn-lg btn-block btn-outline-primary", text: "+2", click: (function(id) { return function() { addPoints(id); }; })(i)}));
+            $("#content").append($newplayer);
         }
         
         startButton = "<div id=\"rocketlaunch\"><a href=\"javascript:launch()\"><img id=\"rocketbutton\" src=\"images/rocketlaunch.png\" width=180></a></div>"
@@ -225,34 +252,27 @@
         addStars();
     });
     
-    function addPoints(points, playerid){
-        console.log(score)
+    function addPoints(playerid){
+        var points = nextVotePoints;
         score[playerid] += points
         totalVotes += points;
-        if(points == 2){
-            $("[id=plustwo]").toggle();
-            $("[id=plusone]").toggle();
-        }
-        else{
-            $("[id=plustwo]").toggle();
-            $("[id=plusone]").toggle();
-        }
+        nextVotePoints = points === 2 ? 1 : 2;
+        $(".vote-button").text("+" + nextVotePoints);
         $("#votes").html("Votes<br>"+totalVotes);
     }
     
     function launch(){
-        $("[id=plusone]").fadeOut();
-        $("[id=plustwo]").fadeOut();
+        prepareRaceResults();
+        $("body").addClass("race-started");
+        $(".vote-button").fadeOut();
         $("#rocketlaunch").fadeOut();
-        setTimeout(launch2(),200);
-        
-        for(i=0; i<players.length; i++){
-            $("#rocket"+i).attr("src","images/rocket.png");
-        }
+        setTimeout(launch2, 200);
+
+        $(".rocketimg").attr("src", "images/rocket.png");
     }
     
     function launch2(){
-        $("[id=player]").animate({height: "120%"}, 5000, "easeInQuint");
+        $(".player").animate({height: "120%"}, 5000, "easeInQuint");
         setTimeout(launch3, 3000);
     }
     
@@ -264,72 +284,48 @@
         setTimeout(launch4, 2000);
     }
     
-    function top3show(){
-        
-        //1) combine the arrays:
-        var list = [];
-        for (var j = 0; j < players.length; j++) 
-            list.push({'player': players[j], 'score': score[j]});
-        
-        //2) sort:
-        list.sort(function(a, b) {
-            return ((a.score > b.score) ? -1 : ((a.score == b.score) ? 0 : 1));
-            //Sort could be modified to, for example, sort on the age 
-            // if the name is the same.
+    function prepareRaceResults(){
+        raceResults = players.map(function(player, index) {
+            return {player: player, score: Number(score[index]), index: index};
         });
-        
-        //3) separate them back out:
-        for (var k = 0; k < list.length; k++) {
-            score[k] = list[k].score;
-            players[k] = list[k].player;
-        }
-        
-        first = players[0];
-        second = players[1];
-        third = players[2];
-        
-        console.log(first, second, third)
-        
-        var r1 = Math.floor(Math.random() * 40 + 40);
-        var r2 = Math.floor(Math.random() * 40 + 40);
-        var r3 = Math.floor(Math.random() * 40 + 40);
-        
-        $(".p"+second).css({top: "120%", left: r1+"%"});
-        $(".p"+third).css({top: "140%", left: r2+"%"});
-        $(".p"+first).css({top: "130%", left: r3+"%"});
-        
-        r1 = Math.floor(Math.random() * 40 + 40);
-        r2 = Math.floor(Math.random() * 40 + 40);
-        r3 = Math.floor(Math.random() * 40 + 40);
-        
-        $(".p"+third).animate({top: "290px",left: r1+"%"}, 4000, "easeInOutBack")
-        $(".p"+first).animate({top: "310px",left: r2+"%"}, 4000, "easeInOutBack")
-        $(".p"+second).animate({top: "300px",left: r3+"%"}, 4000, "easeInOutBack")
-        setTimeout(stay, 4000);
+        raceResults.sort(function(a, b) {
+            return (b.score - a.score) || a.player.localeCompare(b.player);
+        });
+
+        var highestScore = raceResults.length ? raceResults[0].score : null;
+        raceResults.forEach(function(result) {
+            $("#player-" + result.index).toggleClass("winner", result.score === highestScore);
+        });
     }
-    
-    function stay(){
-        var r1 = Math.floor(Math.random() * 40 + 40);
-        var r2 = Math.floor(Math.random() * 40 + 40);
-        var r3 = Math.floor(Math.random() * 40 + 40);
-        
-        var r4 = Math.floor(Math.random() * 200 + 100);
-        var r5 = Math.floor(Math.random() * 200 + 100);
-        var r6 = Math.floor(Math.random() * 200 + 100);
-        
-        $(".p"+second).animate({top: r4+"px",left: r1+"%"}, 3700, "easeInOutBack")
-        $(".p"+first).animate({top: r5+"px",left: r2+"%"}, 3500, "easeInOutBack")
-        $(".p"+third).animate({top: r6+"px",left: r3+"%"}, 4000, "easeInOutBack")
-        setTimeout(leave, 4000);
+
+    function top3show(){
+        prepareRaceResults();
+        if (!raceResults.length) return;
+        players.forEach(function(player, index) {
+            var $player = $("#player-" + index);
+            var currentTop = $player.position().top;
+            $player.css({bottom: "auto", top: currentTop + "px"})
+                .animate({top: "-260px"}, 3500, "easeInQuint");
+        });
     }
-    
-    function leave(){
-        var r1 = Math.floor(Math.random() * 50 + 40);
-        var r2 = Math.floor(Math.random() * 50 + 40);
-        var r3 = Math.floor(Math.random() * 50 + 40);
-        $(".p"+first).animate({top: "-230px",left: r1+"%"}, 1500, "easeInOutBack")
-        $(".p"+second).animate({top: "-230px",left: r2+"%"}, 1550, "easeInOutBack")
-        $(".p"+third).animate({top: "-230px",left: r3+"%"}, 1600, "easeInOutBack")
+
+    function winnerLandingPositions(winners, topOffset){
+        var moonWidth = 600;
+        var moonLeft = Math.max(0, Math.min(window.innerWidth * 0.30, window.innerWidth - moonWidth));
+        var moonTop = window.innerHeight * 0.30;
+        var cellWidth = Math.min(140, (moonWidth - 180) / Math.max(1, winners.length));
+        var gridWidth = winners.length * cellWidth;
+        var left = Math.max(moonLeft + 20, Math.min(moonLeft + (moonWidth - gridWidth) / 2 + 50, moonLeft + moonWidth - gridWidth - 20, window.innerWidth - gridWidth - 20));
+
+        $("#moon").css({left: moonLeft + "px"});
+        return winners.map(function(winner, index){
+            return {
+                winner: winner,
+                left: left + index * cellWidth,
+                top: moonTop + topOffset,
+                cellWidth: cellWidth
+            };
+        });
     }
     
     function launch4(){
@@ -345,18 +341,19 @@
     function cameljump(){
         
         
-        for(i=0; i<players.length; i++){
-            $("#rocket"+i).attr("src","images/rocket_out.png");
-        }
+        $(".player.winner .rocketimg").each(function(){
+            var $rocket = $(this);
+            var smokeId = "smoke" + $rocket.attr("id").replace("rocket", "");
+            $rocket.attr("src", "images/rocket_out.png");
+            $rocket.parent().append($("<img>", {id: smokeId, "class": "smoke", src: "images/smoke.png", width: 80}));
+            $("#" + smokeId).animate({opacity: 0, width: "200px", left: "-60px"}, 1000, "easeInOutBack");
+        });
         
-        for(i=0; i<players.length; i++){
-            $("#rocket"+i).parent().append("<img id=\"smoke"+i+"\" class=\"smoke\" src=\"images/smoke.png\" width=80>");
-            $("#smoke"+i).animate({opacity: 0, width: "200px", left: "-60px"}, 1000, "easeInOutBack")
-        }
-        
-        $("#camel").css({top: "30%", left: "50%"});
-        $("#camel").animate({top: "24%",left: "45%"}, 250, "easeOutCubic")
-        $("#camel").animate({top: "34%",left: "40%"}, 250, "easeInCubic")
+        var moonLeft = Math.max(0, Math.min(window.innerWidth * 0.30, window.innerWidth - 600));
+        var moonTop = window.innerHeight * 0.30;
+        $("#camel").css({top: (moonTop + 430) + "px", left: (moonLeft + 120) + "px"});
+        $("#camel").animate({top: (moonTop + 415) + "px"}, 250, "easeOutCubic")
+            .animate({top: (moonTop + 430) + "px"}, 250, "easeInCubic");
         //$("#camel").append("<img id=\"victory\" class=\"victory\" src=\"images/victory.png\" width=\"5\">");
         //$("#victory").animate({width: "36px"}, 500, "easeInOutBack");
         audioClaps.play();
@@ -364,36 +361,26 @@
     
     function launch6(){
         
-        var r1 = Math.floor(Math.random() * 3 + 30);
-        var r2 = Math.floor(Math.random() * 3 + 30);
-        var r3 = Math.floor(Math.random() * 3 + 30);
-        
         console.log("launch6");
-        $('.p'+first).css({top: "-100px", left: "50%"})
-        $('.p'+first).animate({top: r1+"%"}, 1500)
-        
-        if(score[0] == score[1]){
-            $('.p'+second).css({top: "-100px", left: "55%"})
-            $('.p'+second).animate({top: r2+"%"}, 1500)
-        }
-        
-        if(score[0] == score[2]){
-            $('.p'+third).css({top: "-100px", left: "45%"})
-            $('.p'+third).animate({top: r3+"%"}, 1500)
-        }
+        var highestScore = raceResults.length ? raceResults[0].score : null;
+        var winners = raceResults.filter(function(result) { return result.score === highestScore; });
+        winnerLandingPositions(winners, 55).forEach(function(position) {
+            $("#player-" + position.winner.index).css({top: "-260px", left: position.left + "px"})
+                .animate({top: position.top + "px"}, 1500);
+        });
         
         $("#moon").attr("src","images/moon2.png");
         
         finalScores = "Highscore<br>"
         
         finalScores += "<br><table id=\"scores\" style=\"border: none;\">";
-        for(i=0; i<players.length; i++){
-            finalScores+="<tr><td>"+players[i]+"</td><td>"+score[i]+"</td></tr>";
+        for(i=0; i<raceResults.length; i++){
+            finalScores+="<tr><td>"+$('<div>').text(raceResults[i].player).html()+"</td><td>"+raceResults[i].score+"</td></tr>";
         }
         finalScores += "</table>";
         
         $("#votes").html(finalScores)
-        $("#votes").css({fontSize: "40px", textAlign: "right"})
+        $("#votes").css({textAlign: "right"})
         
         save();
     }
@@ -420,15 +407,15 @@
     
     function save(){
         
-        jscore = {}
+        var jscore = {}
         
-        for(i=0; i< players.length; i++){
-            jscore[players[i]] = score[i];
+        for(i=0; i< raceResults.length; i++){
+            jscore[raceResults[i].player] = raceResults[i].score;
         }
         
         var str = JSON.stringify(jscore);
         
-        $.get("https://amp.pharm.mssm.edu/camelrace/support.php", {points:str}, function(data, status){
+        $.get("support.php", {points:str}, function(data, status){
             //totalscore = data;
             
         });

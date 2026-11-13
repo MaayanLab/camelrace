@@ -1,10 +1,7 @@
-FROM php:7.3-apache
+FROM php:8.4-apache
 
-#Install git
-RUN apt-get update 
-RUN apt-get install -y git
-RUN docker-php-ext-install pdo pdo_mysql mysqli
-RUN mkdir -p /var/www/html/camelrace
+# The app uses mysqli; git is not needed in the runtime image.
+RUN docker-php-ext-install mysqli
 
 
 # Bundle app source
